@@ -1,0 +1,88 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+PIPFILE.lock
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+/media/
+/staticfiles/
+/static/
+logs/
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Google Credentials (IMPORTANT: Never commit this!)
+google-credentials.json
+*.json
+!package.json
+!tsconfig.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Debug/Test Scripts (optional - comment out if you want to commit these)
+debug_*.py
+test_*.py
+get_admin_chatid.py
+
+# Deployment
+*.pid
+*.sock
+gunicorn-error.log
+gunicorn-access.log
+nginx-error.log
+nginx-access.log
+
+# Backups
+*.bak
+*.backup
+*.sql
+*.dump
+
+# OS
+Thumbs.db
+.Spotlight-V100
+.Trashes

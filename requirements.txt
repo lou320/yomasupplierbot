@@ -1,0 +1,16 @@
+# Django and Web Framework
+Django>=5.0,<5.1
+python-dotenv>=1.0.0
+
+# Telegram Bot (using latest version with Python 3.13 support)
+python-telegram-bot[job-queue]>=21.0
+
+# Google Sheets Integration
+gspread>=6.0.0
+google-auth>=2.0.0
+
+# Image handling
+Pillow>=10.0.0
+
+# ASGI server for production (optional)
+gunicorn>=21.0.0
