@@ -410,7 +410,7 @@ async def send_product_details(update: Update, product: dict):
     """
     try:
         # Build unit text (တစ် + unit from column)
-        unit_text = f"တစ်{product.get('unit', '')}" if product.get('unit') else ""
+        unit_text = f"{product.get('unit', '')}" if product.get('unit') else ""
         
         # Create the caption with HTML formatting
         caption = (
