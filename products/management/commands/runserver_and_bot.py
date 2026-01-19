@@ -445,7 +445,7 @@ async def send_product_details(update: Update, product: dict):
         # Create the caption with HTML formatting
         caption = (
             f"<b>{product['name']}</b>\n\n"
-            f"💰 စျေးနှုန်း: {unit_text} {product['price']} Kyat \n"
+            f"💰 စျေးနှုန်း: တစ်{unit_text} {product['price']} Kyat \n"
             f"📊 ပစ္စည်းလက်ကျန်: {product['stock_count']} {unit_text}"
         )
         
