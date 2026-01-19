@@ -173,16 +173,24 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         if step == 'name':
             context.user_data['user_name'] = text
             context.user_data['info_step'] = 'phone'
+            # Add cancel button
+            keyboard = [[InlineKeyboardButton("❌ မလုပ်တော့ပါ (Cancel)", callback_data="cancel_info")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
             await update.message.reply_text(
-                "📞 ပစ္စည်းလက်ခံမည့်သူ၏ ဖုန်းနာမ်ပတ် ပေးပို့ပါ။",
+                "📞 ပစ္စည်းလက်ခံမည့်သူ၏ ဖုန်းနာမ်ပတ် ပေးပို့ပါ။",
+                reply_markup=reply_markup,
                 parse_mode=ParseMode.HTML
             )
             return
         elif step == 'phone':
             context.user_data['user_phone'] = text
             context.user_data['info_step'] = 'address'
+            # Add cancel button
+            keyboard = [[InlineKeyboardButton("❌ မလုပ်တော့ပါ (Cancel)", callback_data="cancel_info")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
             await update.message.reply_text(
-                "📍 ပစ္စည်းလက်ခံမည့်သူ၏ လိပ်စာ ပေးပို့ပါ။",
+                "📍 ပစ္စည်းလက်ခံမည့်သူ၏ လိပ်စာ ပေးပို့ပါ။",
+                reply_markup=reply_markup,
                 parse_mode=ParseMode.HTML
             )
             return
@@ -245,9 +253,26 @@ async def handle_order_callback(update: Update, context: ContextTypes.DEFAULT_TY
         return
     elif query.data == "update_info":
         await query.answer()
-        await query.edit_message_text("📝 အချက်အလက်များကို ပြင်ဆင်ရန်:\n\n👤 နာမည်ပေးပို့ပါ။")
+        # Add cancel button
+        keyboard = [[InlineKeyboardButton("❌ မလုပ်တော့ပါ (Cancel)", callback_data="cancel_info")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(
+            "📝 အချက်အလက်များကို ပြင်ဆင်ရန်:\n\n👤 နာမည်ပေးပို့ပါ။",
+            reply_markup=reply_markup
+        )
         context.user_data['collecting_info'] = True
         context.user_data['info_step'] = 'name'
+        return
+    elif query.data == "cancel_info":
+        await query.answer()
+        context.user_data['collecting_info'] = False
+        context.user_data['info_step'] = None
+        context.user_data.pop('order_product_message_id', None)
+        context.user_data.pop('order_product_chat_id', None)
+        await query.edit_message_text(
+            "❌ Order မတင်တော့ပါ။\n\n"
+            "ပစ္စည်းများကို ကြည့်ရှုရန် အောက်ပါခလုတ်များကို အသုံးပြုပါ။"
+        )
         return
     
     await query.answer()
@@ -264,7 +289,8 @@ async def handle_order_callback(update: Update, context: ContextTypes.DEFAULT_TY
         # User has profile, show options
         keyboard = [
             [InlineKeyboardButton("✅ အချက်အလက်များကိုပြန်လည်အသုံးပြုပါ", callback_data="use_saved_info")],
-            [InlineKeyboardButton("📝 အချက်အလက်များကို ပြင်ဆင်ပါ", callback_data="update_info")]
+            [InlineKeyboardButton("📝 အချက်အလက်များကို ပြင်ဆင်ပါ", callback_data="update_info")],
+            [InlineKeyboardButton("❌ မလုပ်တော့ပါ (Cancel)", callback_data="cancel_info")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
@@ -284,9 +310,13 @@ async def handle_order_callback(update: Update, context: ContextTypes.DEFAULT_TY
     else:
         # No profile, start registration
         await query.edit_message_reply_markup(reply_markup=None)
+        # Add cancel button
+        keyboard = [[InlineKeyboardButton("❌ မလုပ်တော့ပါ (Cancel)", callback_data="cancel_info")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
         await context.bot.send_message(
             chat_id=query.message.chat_id,
-            text="📝 Order တင်ရန် သင်၏အချက်အလက်များကိုဖြည့်ပါ။ \n\n👤 နာမည်ပေးပို့ပါ။",
+            text="📝 Order တင်ရန် သင်၏အချက်အလက်များကိုဖြည့်ပါ။ \n\n👤 နာမည်ပေးပို့ပါ။",
+            reply_markup=reply_markup,
             parse_mode=ParseMode.HTML
         )
         context.user_data['collecting_info'] = True
