@@ -87,7 +87,12 @@ else
     print_status "Google credentials file found."
 fi
 
-# 9. Run Django migrations
+# 9. Create logs directory (needed before migrations)
+print_status "Creating logs directory..."
+mkdir -p logs
+chmod 755 logs
+
+# 10. Run Django migrations
 print_status "Running database migrations..."
 python manage.py makemigrations
 python manage.py migrate
@@ -149,9 +154,6 @@ print_status "Enabling service..."
 sudo systemctl daemon-reload
 sudo systemctl enable yomabot.service
 
-# 15. Create log directory
-sudo mkdir -p /var/log/yomabot
-sudo chown $USER:$USER /var/log/yomabot
 
 echo -e "\n${GREEN}============================================================${NC}"
 echo -e "${GREEN}   Deployment Complete!${NC}"

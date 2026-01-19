@@ -142,6 +142,10 @@ GOOGLE_SHEETS_SPREADSHEET_ID = '1q5_MLhoFUjKx0v7wlqM8gGT21WGurWPb1I3pqf7T5cE'
 GOOGLE_SHEETS_WORKSHEET_NAME = 'Inventory'
 
 # Logging Configuration
+# Ensure logs directory exists
+LOGS_DIR = BASE_DIR / 'logs'
+LOGS_DIR.mkdir(exist_ok=True)
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -158,7 +162,7 @@ LOGGING = {
         },
         'file': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'bot.log',
+            'filename': LOGS_DIR / 'bot.log',
             'maxBytes': 1024 * 1024 * 10,  # 10 MB
             'backupCount': 5,
             'formatter': 'verbose',
