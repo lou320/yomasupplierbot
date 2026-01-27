@@ -2,7 +2,8 @@ import os
 import sys
 import threading
 import logging
-import requests
+import aiohttp
+import asyncio
 import tempfile
 from urllib.parse import quote
 from django.core.management.base import BaseCommand
@@ -73,6 +74,7 @@ class Command(BaseCommand):
             
             # Register handlers
             application.add_handler(CommandHandler("start", start))
+            application.add_handler(CommandHandler("refresh", refresh_cache))
             application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
             application.add_handler(CallbackQueryHandler(handle_order_callback))
             application.add_handler(MessageHandler(filters.REPLY & filters.ChatType.PRIVATE, handle_admin_reply))
@@ -156,6 +158,37 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
     
     logger.info(f"User {user.id} started the bot")
+
+
+async def refresh_cache(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Handle the /refresh command to manually refresh the Google Sheets cache.
+    """
+    user = update.effective_user
+    admin_chat_id = settings.TELEGRAM_ADMIN_CHAT_ID
+    
+    # Only allow admin to refresh cache
+    if admin_chat_id and str(user.id) != str(admin_chat_id):
+        await update.message.reply_text(
+            "⛔ Only admin can refresh the cache.",
+            parse_mode=ParseMode.HTML
+        )
+        return
+    
+    await update.message.reply_text(
+        "🔄 Refreshing data from Google Sheets...",
+        parse_mode=ParseMode.HTML
+    )
+    
+    # Refresh the cache
+    await sync_to_async(sheets_service.refresh_cache)()
+    
+    await update.message.reply_text(
+        "✅ Cache refreshed successfully!",
+        parse_mode=ParseMode.HTML
+    )
+    
+    logger.info(f"Cache refreshed by admin user {user.id}")
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -466,50 +499,59 @@ async def send_product_details(update: Update, product: dict):
         # Send photo with caption
         if image_url:
             try:
-                # Download image and send
-                response = await sync_to_async(requests.get)(image_url, timeout=10)
-                if response.status_code == 200:
-                    # Create a temporary file to store the image
-                    with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
-                        temp_file.write(response.content)
-                        temp_path = temp_file.name
-                    
-                    # Send the photo
-                    with open(temp_path, 'rb') as photo:
-                        await update.message.reply_photo(
-                            photo=photo,
-                            caption=caption,
-                            parse_mode=ParseMode.HTML,
-                            reply_markup=reply_markup
-                        )
-                    
-                    # Clean up temp file
-                    os.unlink(temp_path)
-                else:
-                    # If image download fails, send text only
-                    await update.message.reply_text(
-                        f"{caption}\n\n⚠️ Image not available",
-                        parse_mode=ParseMode.HTML,
-                        reply_markup=reply_markup
-                    )
+                # Download image asynchronously with aiohttp
+                timeout = aiohttp.ClientTimeout(total=10)
+                async with aiohttp.ClientSession(timeout=timeout) as session:
+                    async with session.get(image_url) as response:
+                        if response.status == 200:
+                            image_data = await response.read()
+                            
+                            # Create a temporary file to store the image
+                            with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
+                                temp_file.write(image_data)
+                                temp_path = temp_file.name
+                            
+                            # Send the photo
+                            with open(temp_path, 'rb') as photo:
+                                msg = await update.message.reply_photo(
+                                    photo=photo,
+                                    caption=caption,
+                                    parse_mode=ParseMode.HTML,
+                                    reply_markup=reply_markup
+                                )
+                            
+                            # Clean up temp file
+                            os.unlink(temp_path)
+                            return msg
+                        else:
+                            # If image download fails, send text only
+                            msg = await update.message.reply_text(
+                                f"{caption}\n\n⚠️ Image not available",
+                                parse_mode=ParseMode.HTML,
+                                reply_markup=reply_markup
+                            )
+                            return msg
             except Exception as img_error:
                 logger.warning(f"Error downloading image: {str(img_error)}")
-                await update.message.reply_text(
+                msg = await update.message.reply_text(
                     f"{caption}\n\n⚠️ Image not available",
                     parse_mode=ParseMode.HTML,
                     reply_markup=reply_markup
                 )
+                return msg
         else:
             # No image URL provided
-            await update.message.reply_text(
+            msg = await update.message.reply_text(
                 caption,
                 parse_mode=ParseMode.HTML,
                 reply_markup=reply_markup
             )
+            return msg
             
     except Exception as e:
         logger.error(f"Error sending product {product.get('name', 'Unknown')}: {str(e)}")
-        await update.message.reply_text(
+        msg = await update.message.reply_text(
             f"❌ Error loading product: {product.get('name', 'Unknown')}",
             parse_mode=ParseMode.HTML
         )
+        return msg
