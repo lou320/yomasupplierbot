@@ -120,7 +120,34 @@ class GoogleSheetsService:
             
         except Exception as e:
             logger.error(f"Error fetching products: {str(e)}")
-            return []
+            return {}
+    
+    def get_products_by_status(self, status):
+        """
+        Get products by status from Google Sheets (with caching).
+        
+        Args:
+            status: Either "In-Stock" or "On The Way"
+        
+        Returns:
+            List of product dictionaries
+        """
+        # Check if cache is valid
+        if not self._is_cache_valid():
+            logger.info("Cache expired or empty, fetching from Google Sheets...")
+            self._cache = self._fetch_all_products()
+            self._cache_timestamp = datetime.now()
+        else:
+            logger.info("Using cached data")
+        
+        return self._cache.get(status, [])
+    
+    def refresh_cache(self):
+        """Manually refresh the cache."""
+        logger.info("Manually refreshing cache...")
+        self._cache = self._fetch_all_products()
+        self._cache_timestamp = datetime.now()
+        return self._cache
     
     def get_in_stock_products(self):
         """Get all in-stock products."""
