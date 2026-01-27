@@ -4,13 +4,14 @@ Google Sheets service for fetching product data.
 import gspread
 from google.oauth2.service_account import Credentials
 from django.conf import settings
+from datetime import datetime, timedelta
 import logging
 
 logger = logging.getLogger(__name__)
 
 
 class GoogleSheetsService:
-    """Service to interact with Google Sheets."""
+    """Service to interact with Google Sheets with caching."""
     
     def __init__(self):
         """Initialize the Google Sheets client."""
@@ -19,6 +20,11 @@ class GoogleSheetsService:
         self.worksheet_name = settings.GOOGLE_SHEETS_WORKSHEET_NAME
         self.client = None
         self.worksheet = None
+        
+        # Cache settings
+        self._cache = {}
+        self._cache_timestamp = None
+        self._cache_duration = timedelta(minutes=5)  # Cache for 5 minutes
         
     def connect(self):
         """Connect to Google Sheets."""
@@ -51,29 +57,27 @@ class GoogleSheetsService:
             logger.error(f"Error connecting to Google Sheets: {str(e)}")
             return False
     
-    def get_products_by_status(self, status):
-        """
-        Get products by status from Google Sheets.
-        
-        Args:
-            status: Either "In-Stock" or "On The Way"
-        
-        Returns:
-            List of product dictionaries
-        """
+    def _is_cache_valid(self):
+        """Check if cache is still valid."""
+        if self._cache_timestamp is None:
+            return False
+        return datetime.now() - self._cache_timestamp < self._cache_duration
+    
+    def _fetch_all_products(self):
+        """Fetch all products from Google Sheets and cache them."""
         try:
             if not self.worksheet:
                 if not self.connect():
-                    return []
+                    return {}
             
             # Get all values from the sheet
             all_records = self.worksheet.get_all_values()
             
             # Skip the header row (first row)
             if len(all_records) <= 1:
-                return []
+                return {}
             
-            products = []
+            products_by_status = {'In-Stock': [], 'On The Way': []}
             
             # Process each row (starting from row 2, index 1)
             for row in all_records[1:]:
@@ -96,20 +100,23 @@ class GoogleSheetsService:
                 if not item_name:
                     continue
                 
-                # Filter by status
-                if item_status == status:
-                    products.append({
-                        'name': item_name,
-                        'image_link': image_link,
-                        'price': wholesale_price,
-                        'unit': unit,
-                        'stock_count': qty_on_hand,
-                        'status': item_status,
-                        'expiry_date': expiry_date,
-                    })
+                # Create product dict
+                product = {
+                    'name': item_name,
+                    'image_link': image_link,
+                    'price': wholesale_price,
+                    'unit': unit,
+                    'stock_count': qty_on_hand,
+                    'status': item_status,
+                    'expiry_date': expiry_date,
+                }
+                
+                # Group by status
+                if item_status in products_by_status:
+                    products_by_status[item_status].append(product)
             
-            logger.info(f"Found {len(products)} products with status '{status}'")
-            return products
+            logger.info(f"Fetched {len(products_by_status.get('In-Stock', []))} In-Stock and {len(products_by_status.get('On The Way', []))} On The Way products")
+            return products_by_status
             
         except Exception as e:
             logger.error(f"Error fetching products: {str(e)}")

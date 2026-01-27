@@ -5,6 +5,9 @@ python-dotenv>=1.0.0
 # Telegram Bot (using latest version with Python 3.13 support)
 python-telegram-bot[job-queue]>=21.0
 
+# HTTP client for async image downloads
+aiohttp>=3.9.0
+
 # Google Sheets Integration
 gspread>=6.0.0
 google-auth>=2.0.0
